@@ -123,7 +123,7 @@ bool taskActive(TodoFile tf, ID id) {
 
 void updateMetadata(TodoFile tf) {
     if (tf.status != FILE_IS_READY) {
-        return tf;
+        return;
     }
 
     MetaData oldMeta = tf.mdata;
