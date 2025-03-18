@@ -58,7 +58,7 @@ MetaData getFileMetadata(FILE *f);
 
 // update metadata info checking all todos,
 // can be intensive
-TodoFile updateMetadata(TodoFile tf);
+void updateMetadata(TodoFile tf);
 
 
 #pragma endregion

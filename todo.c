@@ -121,7 +121,7 @@ bool taskActive(TodoFile tf, ID id) {
 }
 
 
-TodoFile updateMetadata(TodoFile tf) {
+void updateMetadata(TodoFile tf) {
     if (tf.status != FILE_IS_READY) {
         return tf;
     }
@@ -154,8 +154,8 @@ TodoFile updateMetadata(TodoFile tf) {
             newMeta.completedCount++;    
         }    
     }
-    tf.mdata = newMeta;
-    return tf;
+    fseek(tf.file, 0, SEEK_SET);
+    fwrite(&newMeta, sizeof(MetaData), 1, tf.file);
 }
 
 void seekToTask(TodoFile tf, ID id) {
