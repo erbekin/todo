@@ -94,7 +94,7 @@ Task getTaskById(TodoFile tf, ID id);
 // task wont be added. you can check return value for this
 // returns id of new added task, if id is equals capacity
 // there was an error probably.
-ID AddTask(TodoFile tf, const char *description);
+ID addTask(TodoFile tf, const char *description);
 
 
 /***************** UTILS **********************************/

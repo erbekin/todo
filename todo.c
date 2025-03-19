@@ -174,7 +174,7 @@ Task getTaskById(TodoFile tf, ID id) {
     return rTask;
 }
 
-ID AddTask(TodoFile tf, const char *description) {
+ID addTask(TodoFile tf, const char *description) {
     if (tf.status != FILE_IS_READY) return tf.mdata.capacity;
     seekToTask(tf, 0);
     ID idCounter = 0;
