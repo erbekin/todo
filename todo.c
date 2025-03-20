@@ -1,5 +1,6 @@
 #include "todo.h"
 
+
 // ** UTILS **//
 
 void formatTime(time_t rawTime, char *buffer) {
@@ -34,8 +35,64 @@ int fileExists(const char *filename) {
     return 0;         // Dosya yok
 }
 
+bool computeTodoHash(TodoFile tf, TodoHash *hash) {
+    if (!hash) return false;  // Check hash pointer upfront
+    
+    unsigned long fileSize = sizeof(Task) * TODO_MAX_TODO;
+    TodoHash hashHash;
+    
+    // init hasher
+    EVP_MD_CTX *mdctx;
+    if((mdctx = EVP_MD_CTX_new()) == NULL) {
+        return false;
+    }
+    if(1 != EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL)) {
+        EVP_MD_CTX_free(mdctx);
+        return false;
+    }
+    
+    // buffer for file contents
+    unsigned char buffer[fileSize];
+    seekToTask(tf, 0);
 
-TodoFile openFile() {
+    // read all tasks
+    size_t bytesRead = fread(buffer, 1, fileSize, tf.file);
+    if (bytesRead != fileSize) {
+        EVP_MD_CTX_free(mdctx);
+        return false;
+    }
+
+    // hash file contents
+    if(1 != EVP_DigestUpdate(mdctx, buffer, fileSize)) {
+        EVP_MD_CTX_free(mdctx);
+        return false;
+    }
+    
+    unsigned int length = 0;
+    if(1 != EVP_DigestFinal_ex(mdctx, hashHash.hash, &length)) {
+        EVP_MD_CTX_free(mdctx);
+        return false;
+    }
+    EVP_MD_CTX_free(mdctx);
+
+    // xor result hash with secret key
+    const char* key = TODO_SECRET_KEY;
+    size_t keylen = strlen(key);
+    
+    // Ensure we have a key with some length
+    if (keylen == 0) {
+        return false;
+    }
+    
+    for (int i = 0; i < TODO_FILE_HASH_SIZE; i++) {
+        hashHash.hash[i] = hashHash.hash[i] ^ key[i % keylen];
+    }
+    
+    memcpy(hash, &hashHash, sizeof(TodoHash));
+    return true;  // Return true on success
+}
+
+TodoFile openTodo() {
     TodoFile tf;
     FILE *f = NULL;
     if (!fileExists(TODO_FILE_NAME)) {
@@ -44,10 +101,13 @@ TodoFile openFile() {
             tf.status = FILE_NOT_FOUND;
             return tf;
         }
-        MetaData m;
-        memset(&m, 0, sizeof(m));
-        m.capacity = TODO_MAX_TODO;
-        formatFile(f, m);
+        DEBUG_LOG("New file will be formatted");
+        formatFile(f);
+        tf.mdata = getFileMetadata(f);
+        tf.file = f;
+        tf.status = FILE_IS_READY;
+        DEBUG_LOG("Opened new todo");
+        return tf;
     }
     else {
         f = fopen(TODO_FILE_NAME, "rb+");
@@ -55,11 +115,26 @@ TodoFile openFile() {
             tf.status = FILE_NOT_FOUND;
             return tf;
         }
+        tf.mdata = getFileMetadata(f);
+        tf.file = f;
+        tf.status = FILE_IS_READY;
+        
+        TodoHash prev;
+        if (!computeTodoHash(tf, &prev)) {
+            DEBUG_LOG("Couldnt compute hash\n");
+            fclose(tf.file);
+            tf.status = FILE_NOT_FOUND;
+            return tf;
+        }
+        if (memcmp(prev.hash, tf.mdata.hash.hash, TODO_FILE_HASH_SIZE) != 0) {
+            DEBUG_LOG("Hash was not matched\n");
+            tf.status = FILE_WAS_CHANGED;
+            fclose(tf.file);
+            return tf;
+        }
+        DEBUG_LOG("Hash matched, existing todo opened");
+        return tf;   
     }
-    tf.mdata = getFileMetadata(f);
-    tf.file = f;
-    tf.status = FILE_IS_READY;
-    return tf;
 }
 
 MetaData getFileMetadata(FILE *f) {
@@ -69,7 +144,7 @@ MetaData getFileMetadata(FILE *f) {
     return md;
 }
 
-void formatFile(FILE *f, MetaData meta) {
+void formatFile(FILE *f) {
     time_t now;
     time(&now);
     unsigned long nextId = 0;
@@ -83,10 +158,15 @@ void formatFile(FILE *f, MetaData meta) {
     // start from beginning
     fseek(f, 0, SEEK_SET);
     // insert metadata
+    MetaData meta = {
+        .capacity = TODO_MAX_TODO,
+        .activeCount = 0,
+        .completedCount = 0,
+    };
     fwrite(&meta, sizeof(meta), 1, f);
 
     // insert tasks
-    unsigned long cap = meta.capacity;
+    unsigned long cap = TODO_MAX_TODO;
     for (unsigned long i = 0; i < cap; i++) {
         sample.id = nextId++;
         fwrite(&sample, sizeof(sample), 1, f);
@@ -154,8 +234,17 @@ void updateMetadata(TodoFile tf) {
             newMeta.completedCount++;    
         }    
     }
+
+    TodoHash newHash;
+    if (!computeTodoHash(tf, &newHash)) {
+        DEBUG_LOG("Coulnt comppute hash while updating metadata\n");
+        return;
+    }
+    newMeta.hash = newHash;
+
     fseek(tf.file, 0, SEEK_SET);
     fwrite(&newMeta, sizeof(MetaData), 1, tf.file);
+    DEBUG_LOG("Metadata updated and writed");
 }
 
 void seekToTask(TodoFile tf, ID id) {
@@ -194,6 +283,7 @@ ID addTask(TodoFile tf, const char *description) {
 
     seekToTask(tf, taskCounter.id);
     fwrite(&taskCounter, sizeof(Task), 1, tf.file);
+    DEBUG_LOG("Added new task to %lu", taskCounter.id);
     return taskCounter.id;
 }
 

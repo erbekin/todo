@@ -4,14 +4,22 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <openssl/evp.h>
 
 #pragma region todo_types
 
 #define TODO_DESCRIPTION_SIZE 256
 #define TODO_FILE_NAME ".todo"
 #define TODO_MAX_TODO 1000
-
+#define TODO_FILE_HASH_SIZE 32
+#define TODO_SECRET_KEY "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
 typedef unsigned long ID;
+
+#ifdef DEBUG
+#define DEBUG_LOG(fmt, ...) fprintf(stderr, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
+#else
+#define DEBUG_LOG(fmt, ...) /* do nothing */
+#endif
 
 /**
  * @struct Task
@@ -40,11 +48,17 @@ typedef struct Task {
     bool completed;
 } Task;
 
+
+typedef struct TodoHash {
+    unsigned char hash[TODO_FILE_HASH_SIZE];
+} TodoHash;
+
+
 /**
  * @struct MetaData
  * @brief Metadata information for the todo file.
  * 
- * @var MetaData::capacity
+ * @var MetaData::capacity 
  * Total number of tasks that can be stored in the file.
  * 
  * @var MetaData::completedCount
@@ -54,10 +68,13 @@ typedef struct Task {
  * Number of active tasks.
  */
 typedef struct MetaData {
+    TodoHash hash;
     unsigned long capacity;
     unsigned long completedCount;
     unsigned long activeCount;
 } MetaData;
+
+
 
 /**
  * @enum StatusCode
@@ -71,7 +88,8 @@ typedef struct MetaData {
  */
 enum StatusCode {
     FILE_NOT_FOUND,
-    FILE_IS_READY
+    FILE_IS_READY,
+    FILE_WAS_CHANGED
 };
 
 /**
@@ -102,7 +120,7 @@ typedef struct TodoFile {
  * 
  * @return TodoFile Struct representing the opened file.
  */
-TodoFile openFile();
+TodoFile openTodo();
 
 /**
  * @brief Closes the given todo file.
@@ -115,9 +133,8 @@ void closeFile(TodoFile tf);
  * @brief Formats the given file with the provided metadata.
  * 
  * @param f The file pointer to format.
- * @param meta The metadata to write to the file.
  */
-void formatFile(FILE *f, MetaData meta);
+void formatFile(FILE *f);
 
 /**
  * @brief Retrieves the metadata from the beginning of the file.
@@ -204,6 +221,9 @@ ID addTask(TodoFile tf, const char *description);
 
 /***************** UTILS **********************************/
 #pragma region utils
+
+// Compute hash of todo file with xoring secret key
+bool computeTodoHash(TodoFile tf, TodoHash *hash);
 
 /**
  * @brief Returns the size of the given file.

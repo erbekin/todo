@@ -1,14 +1,11 @@
 #include "todo.h"
 
 int main(void) {
-    TodoFile tf = openFile();
+    TodoFile tf = openTodo();
     if (tf.status != FILE_IS_READY) {
         printf("error while opening\n");
         return 1;
     }
-    printf("Cap: %lu\n", tf.mdata.capacity);
-    printf("Active: %lu\n", tf.mdata.activeCount);
-    printf("Completed: %lu\n", tf.mdata.completedCount);
-    printTask(getTaskById(tf, 0));
+    addTask(tf, "Ekmek al");
     closeFile(tf);
 }
