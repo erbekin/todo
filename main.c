@@ -1,7 +1,7 @@
 #include "todo.h"
 
 int main(void) {
-    TodoFile tf = openTodo();
+    const TodoFile tf = openTodo();
     if (tf.status != FILE_IS_READY) {
         printf("error while opening\n");
         return 1;

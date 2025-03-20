@@ -16,7 +16,7 @@
 typedef unsigned long ID;
 
 #ifdef DEBUG
-#define DEBUG_LOG(fmt, ...) fprintf(stderr, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
+#define DEBUG_LOG(fmt, ...) fprintf(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
 #else
 #define DEBUG_LOG(fmt, ...) /* do nothing */
 #endif

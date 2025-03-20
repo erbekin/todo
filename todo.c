@@ -6,10 +6,9 @@
 void formatTime(time_t rawTime, char *buffer) {
     struct tm *timeInfo;
 
-    // time_t'ı yerel zamana çevir
+
     timeInfo = localtime(&rawTime);
 
-    // Formatlı tarihi oluştur ve buffer'a yaz
     strftime(buffer, 100, "%d %B %Y %H:%M:%S", timeInfo);
 }
 
@@ -19,20 +18,20 @@ long getFileSize(FILE *file) {
         return -1;
     }
 
-    fseek(file, 0, SEEK_END);  // Dosyanın sonuna git
-    long size = ftell(file);   // Mevcut konum (dosya boyutu)
-    fclose(file);              // Dosyayı kapat
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fclose(file);
 
     return size;
 }
 
 int fileExists(const char *filename) {
-    FILE *file = fopen(filename, "rb"); // Dosyayı sadece okuma modunda açmayı dene
+    FILE *file = fopen(filename, "rb");
     if (file) {
-        fclose(file); // Açıldıysa kapat
-        return 1;     // Dosya var
+        fclose(file); //
+        return 1;
     }
-    return 0;         // Dosya yok
+    return 0;
 }
 
 bool computeTodoHash(TodoFile tf, TodoHash *hash) {
@@ -121,7 +120,7 @@ TodoFile openTodo() {
         
         TodoHash prev;
         if (!computeTodoHash(tf, &prev)) {
-            DEBUG_LOG("Couldnt compute hash\n");
+            DEBUG_LOG("Couldn't compute hash\n");
             fclose(tf.file);
             tf.status = FILE_NOT_FOUND;
             return tf;
@@ -237,14 +236,14 @@ void updateMetadata(TodoFile tf) {
 
     TodoHash newHash;
     if (!computeTodoHash(tf, &newHash)) {
-        DEBUG_LOG("Coulnt comppute hash while updating metadata\n");
+        DEBUG_LOG("Couldn't compute hash while updating metadata\n");
         return;
     }
     newMeta.hash = newHash;
 
     fseek(tf.file, 0, SEEK_SET);
     fwrite(&newMeta, sizeof(MetaData), 1, tf.file);
-    DEBUG_LOG("Metadata updated and writed");
+    DEBUG_LOG("Metadata updated and wrote");
 }
 
 void seekToTask(TodoFile tf, ID id) {

@@ -7,5 +7,5 @@ endif()
 
 add_executable(todo main.c todo.c)
 
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL REQUIRED HINTS "C://msys64/ucrt64")
 target_link_libraries(todo PRIVATE OpenSSL::SSL OpenSSL::Crypto)
