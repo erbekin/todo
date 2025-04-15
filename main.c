@@ -6,6 +6,6 @@ int main(void) {
         printf("error while opening\n");
         return 1;
     }
-    addTask(tf, "Ekmek al");
+    addTask(tf, "add client tests");
     closeFile(tf);
 }
